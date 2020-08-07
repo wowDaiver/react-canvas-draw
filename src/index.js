@@ -568,7 +568,6 @@ export default class CanvasDraw extends PureComponent {
     this.clearWindow(this.ctx.temp);
 
     this.triggerOnChange();
-    this.triggerOnDraw();
   };
   
   triggerOnChange = () => {

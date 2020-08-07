@@ -383,6 +383,7 @@ export class DrawingState {
     // Draw to this end pos
     this.handleDrawMove(e, canvasDraw);
     canvasDraw.saveLine();
+    canvasDraw.triggerOnDraw();
 
     return new DefaultState();
   };
