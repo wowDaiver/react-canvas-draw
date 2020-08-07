@@ -53,6 +53,7 @@ const boundsProp = PropTypes.shape({
 
 export default class CanvasDraw extends PureComponent {
   static propTypes = {
+    onDraw: PropTypes.func,
     onChange: PropTypes.func,
     loadTimeOffset: PropTypes.number,
     lazyRadius: PropTypes.number,
@@ -418,6 +419,48 @@ export default class CanvasDraw extends PureComponent {
   redrawImage = () => {
     this.image && this.image.complete && drawImage({ ctx: this.ctx.grid, img: this.image });
   };
+  
+  myTimeout = (fn, ms) => {
+    return new Promise(resolve => setTimeout(()=>{
+      fn();
+      resolve();
+    }, ms));
+  }
+  
+  simulateDrawingLine = (line) => {
+    return new Promise(resolve => {
+      const promises = [];
+  
+      let curTime = 0;
+      let timeoutGap = this.props.loadTimeOffset;
+      const { points, brushColor, brushRadius } = line;
+  
+      // Use timeout to draw
+      for (let i = 1; i < points.length; i++) {
+        curTime += timeoutGap;
+        promises.push(this.myTimeout(() => {
+          this.drawPoints({
+            points: points.slice(0, i + 1),
+            brushColor,
+            brushRadius
+          });
+        }, curTime));
+      }
+  
+      curTime += timeoutGap;
+      promises.push(this.myTimeout(() => {
+        // Save this line with its props instead of this.props
+        this.points = points;
+        this.saveLine({ brushColor, brushRadius });
+        
+        // Resolve
+        resolve();
+        
+      }, curTime));
+      
+      return Promise.all(promises);
+    });
+  };
 
   simulateDrawingLines = ({ lines, immediate }) => {
     // Simulate live-drawing of the loaded lines
@@ -525,10 +568,15 @@ export default class CanvasDraw extends PureComponent {
     this.clearWindow(this.ctx.temp);
 
     this.triggerOnChange();
+    this.triggerOnDraw();
   };
-
+  
   triggerOnChange = () => {
     this.props.onChange && this.props.onChange(this);
+  };
+  
+  triggerOnDraw = () => {
+    this.props.onDraw && this.props.onDraw(this);
   };
 
   clearWindow = ctx => {
